@@ -5,4 +5,4 @@
 users: []
 runcmd:
   - [sh, -c, "make-ssl-cert generate-default-snakeoil --force-overwrite && systemctl restart xrdp"]
-  - [sh, -c, "git clone -q https://github.com/ja-sandbox/nkp-cicd-bootcamp /opt/nkp-cicd-bootcamp && git -C /opt/nkp-cicd-bootcamp checkout -q 91a47fb2690bd23fc70f5dc0388b63c081cd3eee && /opt/nkp-cicd-bootcamp/setup-workstation.sh > /var/log/bootcamp-setup.log 2>&1"]
+  - [sh, -c, "git clone -q https://github.com/ja-sandbox/nkp-cicd-bootcamp /opt/nkp-cicd-bootcamp && git -C /opt/nkp-cicd-bootcamp checkout -q 348f05fc5eed379d2d42e33bccd84523d36923ea && /opt/nkp-cicd-bootcamp/setup-workstation.sh > /var/log/bootcamp-setup.log 2>&1"]
