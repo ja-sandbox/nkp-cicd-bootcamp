@@ -5,7 +5,7 @@
 #
 # Installs Docker (with buildx), git, jq, gh, kubectl; trusts the lab Harbor's CA; adds the
 # desktop user to the docker group; pre-pulls the CI image; downloads the pinned GitHub Actions
-# runner and its system packages; puts setup-pipeline and cleanup-pipeline on the PATH.
+# runner and its system packages; puts setup-pipeline and pacman-status on the PATH.
 set -euo pipefail
 HERE=$(cd "$(dirname "$0")" && pwd)
 # shellcheck source=bootcamp.conf
@@ -58,7 +58,7 @@ rm -rf "$tmp"
 
 step "commands"
 ln -sf "$HERE/setup-pipeline.sh" /usr/local/bin/setup-pipeline
-ln -sf "$HERE/cleanup-pipeline.sh" /usr/local/bin/cleanup-pipeline
+ln -sf "$HERE/pacman-status.sh" /usr/local/bin/pacman-status
 cat > /etc/profile.d/bootcamp.sh <<'EOF'
 # NKP CI/CD bootcamp: NS, USER_NO, the repo folders, written by setup-pipeline
 [ -r "$HOME/.bootcamp.env" ] && . "$HOME/.bootcamp.env"
@@ -69,7 +69,8 @@ grep -q bootcamp.env "/home/$STUDENT/.bashrc" 2>/dev/null \
 cat > /etc/motd <<EOF
 
   NKP CI/CD bootcamp workstation. Tools are ready.
-  Next: create your NKP project, then run  setup-pipeline
+  Next: create your NKP project pacman-user##, then run  setup-pipeline
+  Any time:  pacman-status
 
 EOF
 

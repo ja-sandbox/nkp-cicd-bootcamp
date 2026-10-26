@@ -8,9 +8,10 @@
 #   ./prep-lab.sh --students 2 --skip-harbor --skip-cluster
 #
 # Lab (once per HPOC):
-#   cluster  ClusterRole + ClusterRoleBinding on poc237-wl01: every service account may read pods
-#            and nodes, so each student's Pac-Man can show its cloud and zone without a binding
-#            per namespace. Read-only; a lab shortcut.
+#   cluster  On poc237-wl01, two read-only lab shortcuts: every service account may read pods and
+#            nodes (bootcamp-pacman-reader), so each student's Pac-Man can show its cloud and zone
+#            without a binding per namespace; and the class kubectl login, service account
+#            bootcamp-system/bootcamp-student with read-only bootcamp-student-view.
 #   harbor   project robot "bootcamp" (push + pull on apps). Asks for the Harbor admin password
 #            when it has to create or refresh the robot, so run it from a terminal.
 #   lb       warns when the MetalLB pool has fewer free addresses than students.
@@ -21,7 +22,10 @@
 #                          files/kustomization.yaml as nkp/kustomization.yaml, Actions off
 #   deploy key "pacman-pipeline" (write) on the manifests repo, its private half as secret
 #   MANIFESTS_DEPLOY_KEY on the app repo
-# Writes class/card.md (dashboard, repos, Harbor robot) for the instructor. class/ is not in git.
+# Class code: the class GitHub token (class/github-token, made by hand, see README), the Harbor
+# robot secret and the class kubectl token in one string, class/class-code.txt, which students
+# paste into setup-pipeline. class/card.md lists it with the dashboard and the repos.
+# class/ holds secrets and is not in git.
 set -euo pipefail
 
 HERE=$(cd "$(dirname "$0")" && pwd)
@@ -92,6 +96,60 @@ subjects:
   - {apiGroup: rbac.authorization.k8s.io, kind: Group, name: "system:serviceaccounts"}
 EOF
   ok "clusterrole + clusterrolebinding bootcamp-pacman-reader"
+
+  step "Cluster: read-only class login for the students' kubectl"
+  kwl apply -f - >/dev/null <<'EOF'
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: bootcamp-system
+  labels: {app.kubernetes.io/part-of: nkp-cicd-bootcamp}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata: {name: bootcamp-student, namespace: bootcamp-system}
+---
+apiVersion: v1
+kind: Secret
+type: kubernetes.io/service-account-token
+metadata:
+  name: bootcamp-student-token
+  namespace: bootcamp-system
+  annotations: {kubernetes.io/service-account.name: bootcamp-student}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: bootcamp-student-view
+  labels: {app.kubernetes.io/part-of: nkp-cicd-bootcamp}
+rules:
+  - apiGroups: [""]
+    resources: ["namespaces", "pods", "pods/log", "services", "endpoints", "events"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["source.toolkit.fluxcd.io"]
+    resources: ["gitrepositories"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["kustomize.toolkit.fluxcd.io"]
+    resources: ["kustomizations"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: bootcamp-student-view
+  labels: {app.kubernetes.io/part-of: nkp-cicd-bootcamp}
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: bootcamp-student-view}
+subjects:
+  - {kind: ServiceAccount, name: bootcamp-student, namespace: bootcamp-system}
+EOF
+  for _ in $(seq 1 20); do
+    [[ -n $(kwl -n bootcamp-system get secret bootcamp-student-token -o jsonpath='{.data.token}') ]] && break
+    sleep 2
+  done
+  ok "service account bootcamp-system/bootcamp-student, clusterrole bootcamp-student-view (read-only)"
 }
 
 lab_lb() {
@@ -218,18 +276,34 @@ for u in "${users[@]}"; do
   deploy_key "$u"
 done
 
+# The class code: the three class logins in one string students paste into setup-pipeline.
+step "Class code"
+token_file=$CLASS_DIR/github-token code_file=$CLASS_DIR/class-code.txt
+kube_token=$(kwl -n bootcamp-system get secret bootcamp-student-token -o jsonpath='{.data.token}' 2>/dev/null | base64 -d || true)
+if [[ -s $token_file && -s $robot_file && -n $kube_token ]]; then
+  printf 'NKPCICD1:%s\n' "$(jq -cn --arg g "$(tr -d '\r\n' < "$token_file")" --arg h "$(jq -r .secret "$robot_file")" \
+    --arg k "$kube_token" '{github: $g, harbor: $h, kube: $k}' | base64 -w0)" > "$code_file"
+  chmod 600 "$code_file"
+  ok "$code_file"
+else
+  rm -f "$code_file"
+  [[ -s $token_file ]] || todo "save the class GitHub token in $token_file (see README), then run this again"
+  [[ -s $robot_file ]] || todo "Harbor robot missing: run this again from a terminal"
+  [[ -n $kube_token ]] || todo "class kubectl login missing: run this again without --skip-cluster"
+fi
+
 card=$CLASS_DIR/card.md
 {
   echo "# NKP CI/CD bootcamp: class card ($(date +%F))"
   echo
   echo "- NKP dashboard: $DASHBOARD"
-  echo "- Bootcamp repo: https://github.com/$OWNER/nkp-cicd-bootcamp"
-  if [[ -s $robot_file ]]; then
-    echo "- Harbor: $HARBOR, robot \`$(jq -r .name "$robot_file")\`, secret \`$(jq -r .secret "$robot_file")\`"
+  echo "- Bootcamp repo: https://github.com/$OWNER/nkp-cicd-bootcamp (cloud-init.yaml)"
+  if [[ -s $code_file ]]; then
+    echo "- Class code (paste into setup-pipeline): \`$(cat "$code_file")\`"
   else
-    echo "- Harbor robot: not made yet (run prep-lab.sh from a terminal)"
+    echo "- Class code: not ready (see the todo lines of prep-lab.sh)"
   fi
-  echo "- GitHub token: fine-grained, owner $OWNER, only the bootcamp repos (see README)"
+  [[ -s $robot_file ]] && echo "- Harbor robot \`$(jq -r .name "$robot_file")\` expires $(date -d "@$(jq -r .expires_at "$robot_file")" +%F)"
   echo
   echo "| Student | App repo | Manifests repo |"
   echo "|---|---|---|"
