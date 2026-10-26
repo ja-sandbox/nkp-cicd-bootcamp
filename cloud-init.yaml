@@ -7,4 +7,4 @@ manage_etc_hosts: true
 users: []
 runcmd:
   - [sh, -c, "make-ssl-cert generate-default-snakeoil --force-overwrite && systemctl restart xrdp"]
-  - [sh, -c, "git clone -q https://github.com/ja-sandbox/nkp-cicd-bootcamp /opt/nkp-cicd-bootcamp && git -C /opt/nkp-cicd-bootcamp checkout -q BOOTCAMP_COMMIT && /opt/nkp-cicd-bootcamp/setup-workstation.sh > /var/log/bootcamp-setup.log 2>&1"]
+  - [sh, -c, "git clone -q https://github.com/ja-sandbox/nkp-cicd-bootcamp /opt/nkp-cicd-bootcamp && git -C /opt/nkp-cicd-bootcamp checkout -q 67ad1fecb9b67fa68a1ccba3d65a275c61c1ad8f && /opt/nkp-cicd-bootcamp/setup-workstation.sh > /var/log/bootcamp-setup.log 2>&1"]
