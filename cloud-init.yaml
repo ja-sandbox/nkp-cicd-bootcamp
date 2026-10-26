@@ -1,0 +1,10 @@
+#cloud-config
+# NKP CI/CD bootcamp workstation: paste into Guest Customization (Cloud-init (Linux)) when you
+# deploy a VM from _TEMPLATE_UBUNTU2404. Replace ## with your user number. The scripts are fixed
+# to one commit of ja-sandbox/nkp-cicd-bootcamp; progress is in /var/log/bootcamp-setup.log.
+hostname: user##-ws
+manage_etc_hosts: true
+users: []
+runcmd:
+  - [sh, -c, "make-ssl-cert generate-default-snakeoil --force-overwrite && systemctl restart xrdp"]
+  - [sh, -c, "git clone -q https://github.com/ja-sandbox/nkp-cicd-bootcamp /opt/nkp-cicd-bootcamp && git -C /opt/nkp-cicd-bootcamp checkout -q BOOTCAMP_COMMIT && /opt/nkp-cicd-bootcamp/setup-workstation.sh > /var/log/bootcamp-setup.log 2>&1"]

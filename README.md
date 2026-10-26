@@ -15,6 +15,11 @@ Each student `##` gets two repos in this GitHub account, prepared by the instruc
 
 | Path | Used by | Purpose |
 |---|---|---|
+| `cloud-init.yaml` | student | Pasted into Guest Customization when deploying the workstation VM; runs `setup-workstation.sh` from a fixed commit |
+| `setup-workstation.sh` | cloud-init (root) | Docker, git, gh, kubectl, Harbor CA, pre-pulled CI image, the runner download; log in `/var/log/bootcamp-setup.log` |
+| `setup-pipeline.sh` | student (`setup-pipeline`) | Logins, the two repo clones, the overlay's namespace, the self-hosted runner |
+| `cleanup-pipeline.sh` | student (`cleanup-pipeline`) | Removes the runner and the logins |
+| `bootcamp.conf` | all scripts | Lab settings: GitHub owner, Harbor, versions |
 | `files/build-and-promote.yml` | `prep-lab.sh` | The pipeline: lint and test, build, push to Harbor, commit the new tag to the manifests repo |
 | `files/kustomization.yaml` | `prep-lab.sh` | The NKP overlay: project namespace and image |
 | `files/harbor-ca.crt` | student VMs | The lab Harbor's CA certificate (public) |
