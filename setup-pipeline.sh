@@ -6,11 +6,12 @@
 #
 # It asks for your user number and the class code (from the instructor; hidden while you paste).
 # Then, skipping whatever is already done:
-#   1. names this VM user##-ws and logs kubectl (read-only), gh, git and Docker in to the lab
+#   1. logs kubectl (read-only), gh, git and Docker in to the lab
 #   2. finds your project namespace (pacman-user##-xxxxx)
 #   3. clones your two repos to ~/pacman-user## and ~/pacman-for-k8s-user##
 #   4. puts your namespace into nkp/kustomization.yaml and pushes it
-#   5. registers this VM as the self-hosted runner of pacman-user## and starts it as a service
+#   5. names this VM user##-ws, registers it as the self-hosted runner of pacman-user## and
+#      starts the runner as a service
 #   6. writes ~/.bootcamp.env (USER_NO, NS, APP_DIR, K8S_DIR), loaded by every new terminal
 set -euo pipefail
 HERE=$(cd "$(dirname "$(readlink -f "$0")")" && pwd)
@@ -43,16 +44,7 @@ APP=pacman-user$no K8S=pacman-for-k8s-user$no WS=user$no-ws
 APP_DIR=$HOME/$APP K8S_DIR=$HOME/$K8S
 
 # ---------------------------------------------------------------- 1. logins
-step "1. This VM and its logins"
-if [[ $(hostname) != "$WS" ]]; then
-  old=$(hostname)
-  sudo hostnamectl set-hostname "$WS"
-  sudo sed -i "/^127\.0\.1\.1[[:space:]]/d" /etc/hosts && echo "127.0.1.1 $WS" | sudo tee -a /etc/hosts >/dev/null
-  did "hostname $WS (was $old)"
-else
-  ok "hostname $WS"
-fi
-
+step "1. Logins"
 kube_ok()   { kubectl get ns >/dev/null 2>&1; }
 gh_ok()     { gh api "repos/$OWNER/$APP" --jq .permissions.admin 2>/dev/null | grep -qx true; }
 docker_ok() { jq -e --arg h "$HARBOR" '.auths[$h]' "$HOME/.docker/config.json" >/dev/null 2>&1; }
@@ -123,7 +115,15 @@ n=$(kubectl kustomize --load-restrictor LoadRestrictionsNone "$K8S_DIR/nkp" | gr
 ok "overlay renders $n objects"
 
 # ---------------------------------------------------------------- 5. runner
-step "5. Runner"
+step "5. This VM as your runner"
+if [[ $(hostname) != "$WS" ]]; then
+  old=$(hostname)
+  sudo hostnamectl set-hostname "$WS"
+  sudo sed -i "/^127\.0\.1\.1[[:space:]]/d" /etc/hosts && echo "127.0.1.1 $WS" | sudo tee -a /etc/hosts >/dev/null
+  did "hostname $WS (was $old)"
+else
+  ok "hostname $WS"
+fi
 RUNNER_DIR=$HOME/actions-runner
 svc=actions.runner.$OWNER-$APP.$WS
 runner_online() {

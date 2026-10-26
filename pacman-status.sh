@@ -21,4 +21,6 @@ if [[ -n $ip ]]; then
 else
   printf '\nGame: no address yet (pacman-web has no EXTERNAL-IP).\n'
 fi
-show gh run list -R "$OWNER/pacman-user$USER_NO" -L 3
+printf '\n\033[1m$ %s\033[0m\n' "gh run list -R $OWNER/pacman-user$USER_NO -L 3"
+runs=$(gh run list -R "$OWNER/pacman-user$USER_NO" -L 3 2>&1)
+printf '%s\n' "${runs:-No pipeline runs yet: they start when you push to pacman-user$USER_NO.}"
