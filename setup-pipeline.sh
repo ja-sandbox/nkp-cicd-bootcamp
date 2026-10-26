@@ -157,11 +157,13 @@ cat <<EOF
 
 Ready. Open a new terminal so \$NS, \$APP_DIR and \$K8S_DIR are set.
 
-Next, in the NKP dashboard: Projects > pacman-user$no > Continuous Deployment (CD) > Add GitOps Source
-  ID              pacman
-  Repository URL  https://github.com/$OWNER/$K8S
-  Branch          main
-  Path            ./nkp
+Next, in the NKP dashboard: Projects > pacman-user$no > Continuous Deployment (CD) > Create GitOps Source
+  Name                pacman
+  Repository URL      https://github.com/$OWNER/$K8S
+  Git Ref Type        Branch
+  Branch Name         main   (left empty, NKP would use master)
+  Path                ./nkp
+  Primary Git Secret  leave empty (the repo is public)
 
 Then run  pacman-status  to see it deploy and to get the game's address.
 EOF

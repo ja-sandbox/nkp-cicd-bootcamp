@@ -12,7 +12,7 @@ an NKP project's GitOps source (Flux).
 2. In the NKP dashboard, create the project `pacman-user##` on `poc237-wl01`.
 3. On the VM (RDP or SSH as `localadmin`), run `setup-pipeline` and give it your user number and
    the class code.
-4. In the NKP dashboard, add the GitOps source it prints. `pacman-status` shows the deploy and the
+4. In the NKP dashboard, create the GitOps source it prints. `pacman-status` shows the deploy and the
    game's address.
 5. Change the game in `~/pacman-user##`, commit and push: the pipeline builds it and Flux deploys
    it. Roll back with `git revert` of the "Deploy pacman" commit in `~/pacman-for-k8s-user##`.
