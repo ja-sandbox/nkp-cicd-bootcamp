@@ -63,7 +63,7 @@ else
   kubectl config set-credentials bootcamp-student --token "$(jq -r .kube <<< "$json")" >/dev/null
   kubectl config set-context bootcamp --cluster "$(jq -r .name "$HERE/files/cluster.json")" --user bootcamp-student >/dev/null
   kubectl config use-context bootcamp >/dev/null
-  chmod 600 "$HOME/.kube/config"
+  chmod 600 "${KUBECONFIG:-$HOME/.kube/config}"
   kube_ok || fail "the cluster refused the class login: ask the instructor for the current class code"
   did "kubectl (read-only class login to $(jq -r .name "$HERE/files/cluster.json"))"
 
