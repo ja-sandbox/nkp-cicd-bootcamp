@@ -1,0 +1,30 @@
+# NKP overlay for Pac-Man: the Path (./nkp) of the "pacman" GitOps source in
+# your NKP project.
+#
+# It changes two things in the upstream manifests:
+#   namespace: your NKP project's namespace (setup-pipeline.sh fills it in).
+#   images:    the image to run. The pipeline rewrites newName and the
+#              digest/newTag line on every build.
+#
+# It lists the base files rather than using the repo root as its base, because
+# Kustomize refuses a base that contains the overlay. Flux allows ../ paths
+# inside the repo; to render it locally:
+#   kubectl kustomize --load-restrictor LoadRestrictionsNone nkp
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: REPLACE_WITH_PROJECT_NAMESPACE
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: pacman
+    includeSelectors: true
+resources:
+  - ../security/secret.yaml
+  - ../persistentvolumeclaim/mongo-pvc.yaml
+  - ../deployments/mongo-deployment.yaml
+  - ../services/mongo-service.yaml
+  - ../deployments/pacman-deployment.yaml
+  - ../services/pacman-service.yaml
+images:
+  - name: docker.io/saintdle/pacman
+    newName: docker.io/saintdle/pacman
+    digest: sha256:592740129bce7530a347146b86647f8b516df3c19105aa4c2fe40b878840fccf
